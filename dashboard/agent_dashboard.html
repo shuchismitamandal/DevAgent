@@ -1,0 +1,1354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DevAgent — Command Center</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Syne:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ── RESET & ROOT ─────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:       #07090F;
+  --bg2:      #0C1018;
+  --bg3:      #111826;
+  --bg4:      #172030;
+  --border:   #1A2538;
+  --border2:  #243550;
+  --text:     #C4D4E8;
+  --text2:    #6B88A8;
+  --text3:    #344D68;
+  --accent:   #2D7DD2;
+  --green:    #0FBA74;
+  --amber:    #F0A020;
+  --red:      #E84040;
+  --purple:   #8B68F0;
+  --cyan:     #00C8D8;
+  --mono:     'JetBrains Mono', monospace;
+  --head:     'Syne', sans-serif;
+}
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 12px;
+}
+
+/* ── HEADER ─────────────────────────────────────────────── */
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  height: 48px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg2);
+  position: relative;
+  z-index: 50;
+  flex-shrink: 0;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--head);
+  font-size: 16px;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.3px;
+}
+
+.logo-mark {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, var(--accent), var(--purple));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+
+.logo em { color: var(--accent); font-style: normal; }
+
+.header-center {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 11px;
+  color: var(--text3);
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+/* WS Status */
+.ws-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .07em;
+}
+
+.ws-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--text3);
+  transition: background .3s;
+}
+
+.ws-dot.connected    { background: var(--green); animation: pulseglow 2s infinite; }
+.ws-dot.connecting   { background: var(--amber); animation: blink 1s infinite; }
+.ws-dot.disconnected { background: var(--red); }
+
+
+@keyframes pulseglow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(15,186,116,.5); }
+  50%       { box-shadow: 0 0 0 5px rgba(15,186,116,0); }
+}
+@keyframes blink { 50% { opacity: 0; } }
+
+.dev-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  border-radius: 20px;
+  padding: 4px 12px 4px 5px;
+  font-size: 11px;
+  color: var(--text2);
+}
+
+.avatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--purple));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 700;
+  color: #fff;
+}
+
+/* Refresh bar */
+.refresh-bar { height: 2px; background: transparent; overflow: hidden; flex-shrink: 0; }
+.refresh-fill {
+  height: 100%;
+  background: var(--accent);
+  opacity: .4;
+  animation: rfill 30s linear infinite;
+}
+@keyframes rfill { from { width: 0 } to { width: 100% } }
+
+/* ── LAYOUT ──────────────────────────────────────────────── */
+.layout {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  height: calc(100vh - 50px);
+}
+
+/* ── SIDEBAR ─────────────────────────────────────────────── */
+.sidebar {
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  background: var(--bg2);
+  overflow: hidden;
+}
+
+.sidebar-top {
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.sidebar-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.sec-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--text3);
+}
+
+.poll-indicator {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 9px;
+  color: var(--text3);
+}
+
+.stats-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.stat-box {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 8px 10px;
+}
+
+.stat-box .v {
+  font-family: var(--head);
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1;
+  margin-bottom: 2px;
+}
+
+.stat-box .l { font-size: 9px; color: var(--text3); }
+.stat-box.r  .v { color: var(--red); }
+.stat-box.a  .v { color: var(--amber); }
+.stat-box.g  .v { color: var(--green); }
+
+.search-box {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 0 10px;
+  height: 30px;
+}
+
+.search-box svg { flex-shrink: 0; color: var(--text3); }
+
+.search-box input {
+  background: none;
+  border: none;
+  outline: none;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 11px;
+  width: 100%;
+}
+
+.search-box input::placeholder { color: var(--text3); }
+
+/* ── MENTION LIST ────────────────────────────────────────── */
+.mention-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 6px;
+}
+
+.mention-list::-webkit-scrollbar { width: 3px; }
+.mention-list::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+.m-card {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 12px;
+  margin-bottom: 5px;
+  cursor: pointer;
+  background: var(--bg);
+  position: relative;
+  overflow: hidden;
+  transition: border-color .12s, background .12s, transform .1s;
+}
+
+.m-card::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  border-radius: 6px 0 0 6px;
+}
+
+.m-card.critical::before { background: var(--red); }
+.m-card.high::before     { background: var(--amber); }
+.m-card.medium::before   { background: var(--accent); }
+.m-card.low::before      { background: var(--green); }
+
+.m-card:hover  { border-color: var(--border2); background: var(--bg3); transform: translateX(2px); }
+.m-card.active { border-color: var(--accent);  background: var(--bg3); }
+
+.m-card.fresh { animation: slide-in .25s ease; }
+@keyframes slide-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.m-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 5px;
+}
+
+.m-id {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--accent);
+  letter-spacing: .04em;
+}
+
+.m-badges { display: flex; align-items: center; gap: 5px; }
+
+.badge-pri {
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  padding: 1px 6px;
+  border-radius: 3px;
+}
+
+.badge-pri.critical { background: rgba(232,64,64,.15); color: var(--red); }
+.badge-pri.high     { background: rgba(240,160,32,.15); color: var(--amber); }
+.badge-pri.medium   { background: rgba(45,125,210,.15); color: var(--accent); }
+.badge-pri.low      { background: rgba(15,186,116,.15); color: var(--green); }
+
+.badge-new {
+  font-size: 8px;
+  font-weight: 700;
+  background: var(--accent);
+  color: #fff;
+  padding: 1px 5px;
+  border-radius: 3px;
+  animation: newblink 1s step-end 5;
+}
+
+@keyframes newblink { 50% { opacity: 0; } }
+
+.m-title {
+  font-family: var(--head);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.35;
+  margin-bottom: 7px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.m-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 10px;
+  color: var(--text3);
+}
+
+.m-status { display: flex; align-items: center; gap: 4px; }
+
+.s-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--text3);
+}
+
+.s-dot.ready  { background: var(--green); }
+.s-dot.busy   { background: var(--amber); animation: blink 1.2s infinite; }
+
+/* ── MAIN PANEL ──────────────────────────────────────────── */
+.main { display: flex; flex-direction: column; overflow: hidden; }
+
+/* Empty state */
+.empty-state {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: var(--text3);
+}
+
+.empty-icon { font-size: 40px; opacity: .2; }
+
+.empty-state h2 {
+  font-family: var(--head);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text2);
+}
+
+.empty-state p { font-size: 11px; }
+
+/* ── LOADING PANEL ───────────────────────────────────────── */
+.loading-panel {
+  flex: 1;
+  display: none;
+  flex-direction: column;
+  padding: 20px 24px;
+  gap: 6px;
+  overflow-y: auto;
+}
+
+.loading-panel.show { display: flex; }
+
+.loading-title {
+  font-family: var(--head);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text2);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.spinner {
+  width: 12px;
+  height: 12px;
+  border: 1.5px solid var(--border2);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin .6s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.p-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 7px 10px;
+  animation: fade-up .2s ease both;
+}
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.p-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  background: var(--bg4);
+  border: 1px solid var(--border2);
+  flex-shrink: 0;
+}
+
+.p-name   { font-size: 11px; font-weight: 600; color: var(--text2); min-width: 88px; }
+.p-status { font-size: 11px; color: var(--text3); flex: 1; }
+.p-ok     { color: var(--green); font-size: 14px; flex-shrink: 0; }
+
+/* ── BRIEFING PANEL ──────────────────────────────────────── */
+.briefing-panel {
+  flex: 1;
+  display: none;
+  flex-direction: column;
+  overflow-y: auto;
+  padding: 20px 24px;
+  gap: 16px;
+}
+
+.briefing-panel.show { display: flex; }
+.briefing-panel::-webkit-scrollbar { width: 3px; }
+.briefing-panel::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+/* Briefing Header */
+.b-header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.b-header-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.b-ticket-id {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: .06em;
+  margin-bottom: 4px;
+}
+
+.b-title {
+  font-family: var(--head);
+  font-size: 18px;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1.25;
+}
+
+.sev-ring {
+  min-width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid;
+  flex-shrink: 0;
+}
+
+.sev-ring .sn { font-family: var(--head); font-size: 20px; font-weight: 800; line-height: 1; }
+.sev-ring .sl { font-size: 7px; letter-spacing: .05em; text-transform: uppercase; opacity: .6; }
+
+.sev-ring.s9,
+.sev-ring.s10 { border-color: var(--red);    color: var(--red); }
+.sev-ring.s7,
+.sev-ring.s8  { border-color: var(--amber);  color: var(--amber); }
+.sev-ring.s5,
+.sev-ring.s6  { border-color: var(--accent); color: var(--accent); }
+.sev-ring.s1, .sev-ring.s2,
+.sev-ring.s3, .sev-ring.s4 { border-color: var(--green); color: var(--green); }
+
+.b-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.b-tag {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 4px;
+  border: 1px solid;
+}
+
+.b-tag.incident { background: rgba(232,64,64,.12); color: var(--red);    border-color: rgba(232,64,64,.3); }
+.b-tag.bug      { background: rgba(240,160,32,.12); color: var(--amber);  border-color: rgba(240,160,32,.3); }
+.b-tag.task,
+.b-tag.review   { background: rgba(15,186,116,.12); color: var(--green);  border-color: rgba(15,186,116,.3); }
+.b-tag.service  { background: rgba(139,104,240,.12); color: var(--purple); border-color: rgba(139,104,240,.3); }
+.b-tag.dim      { background: var(--bg3); color: var(--text2); border-color: var(--border2); }
+.b-tag.conf     { background: rgba(15,186,116,.12); color: var(--green);  border-color: rgba(15,186,116,.3); }
+.b-tag.jira-link{ background: rgba(45,125,210,.12); color: var(--accent); border-color: rgba(45,125,210,.3); text-decoration: none; cursor: pointer; }
+
+/* Sections */
+.section { display: flex; flex-direction: column; gap: 8px; }
+
+.section-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--text3);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+/* Signal chips */
+.signals-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 6px;
+}
+
+.sig-chip {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 9px 11px;
+}
+
+.sig-chip .sp { font-size: 8px; color: var(--text3); letter-spacing: .06em; text-transform: uppercase; margin-bottom: 1px; }
+.sig-chip .sc { font-family: var(--head); font-size: 22px; font-weight: 800; line-height: 1; margin-bottom: 1px; }
+.sig-chip .sl { font-size: 9px; color: var(--text2); }
+
+.sig-chip.red    .sc { color: var(--red); }
+.sig-chip.amber  .sc { color: var(--amber); }
+.sig-chip.purple .sc { color: var(--purple); }
+.sig-chip.blue   .sc { color: var(--accent); }
+.sig-chip.cyan   .sc { color: var(--cyan); }
+.sig-chip.green  .sc { color: var(--green); }
+
+/* Prose card */
+.prose-card {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px 14px;
+  line-height: 1.75;
+  color: var(--text);
+  font-size: 12px;
+}
+
+/* Confidence bar */
+.conf-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.conf-label { font-size: 9px; color: var(--text3); letter-spacing: .06em; min-width: 68px; }
+
+.conf-bar { flex: 1; height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; }
+
+.conf-fill { height: 100%; border-radius: 2px; transition: width .8s ease; }
+.conf-fill.high   { background: var(--green); }
+.conf-fill.medium { background: var(--amber); }
+.conf-fill.low    { background: var(--red); }
+
+.conf-val { font-size: 10px; font-weight: 700; min-width: 34px; text-align: right; }
+.conf-val.high   { color: var(--green); }
+.conf-val.medium { color: var(--amber); }
+.conf-val.low    { color: var(--red); }
+
+/* In-motion card */
+.motion-card {
+  background: rgba(15,186,116,.06);
+  border: 1px solid rgba(15,186,116,.2);
+  border-radius: 6px;
+  padding: 12px 14px;
+  display: flex;
+  gap: 10px;
+  line-height: 1.7;
+  font-size: 12px;
+  color: var(--text);
+}
+
+.motion-icon { color: var(--green); font-size: 16px; margin-top: 2px; flex-shrink: 0; }
+
+/* Action items */
+.action-list { display: flex; flex-direction: column; gap: 6px; }
+
+.action-item {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 11px 13px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  transition: border-color .12s;
+}
+
+.action-item:hover { border-color: var(--border2); }
+
+.a-num {
+  min-width: 20px;
+  height: 20px;
+  background: var(--bg4);
+  border: 1px solid var(--border2);
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--text3);
+  flex-shrink: 0;
+}
+
+.a-body { flex: 1; display: flex; flex-direction: column; gap: 5px; }
+
+.platform-tag {
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 3px;
+  display: inline-block;
+  width: fit-content;
+}
+
+.platform-tag.jira      { background: rgba(45,125,210,.18); color: var(--accent); }
+.platform-tag.bitbucket { background: rgba(139,104,240,.18); color: var(--purple); }
+.platform-tag.gcp       { background: rgba(232,64,64,.18);   color: var(--red); }
+.platform-tag.outlook   { background: rgba(240,160,32,.18);  color: var(--amber); }
+.platform-tag.teams     { background: rgba(139,104,240,.18); color: var(--purple); }
+.platform-tag.boldesk   { background: rgba(0,200,216,.18);   color: var(--cyan); }
+.platform-tag.terminal  { background: rgba(15,186,116,.18);  color: var(--green); }
+
+.a-text { font-size: 11px; line-height: 1.6; color: var(--text); }
+
+.open-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--bg4);
+  border: 1px solid var(--border2);
+  border-radius: 4px;
+  padding: 5px 10px;
+  color: var(--text2);
+  font-family: var(--mono);
+  font-size: 10px;
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all .12s;
+}
+
+.open-btn:hover { background: var(--accent); border-color: var(--accent); color: #fff; }
+.open-btn svg   { width: 10px; height: 10px; }
+
+/* ── TOAST ───────────────────────────────────────────────── */
+.toast {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  border-radius: 8px;
+  padding: 11px 15px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11px;
+  z-index: 999;
+  transform: translateY(80px);
+  opacity: 0;
+  transition: all .22s ease;
+  box-shadow: 0 8px 32px rgba(0,0,0,.5);
+  max-width: 320px;
+}
+
+.toast.show { transform: translateY(0); opacity: 1; }
+.toast-dot  { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+</style>
+</head>
+<body>
+
+<!-- ── HEADER ── -->
+<header>
+  <div class="logo">
+    <div class="logo-mark">⚡</div>
+    Dev<em>Agent</em>
+  </div>
+
+  <div class="header-center"></div>
+
+  <div class="header-right">
+    <div class="ws-status">
+      <div class="ws-dot connecting" id="wsDot"></div>
+      <span id="wsLabel" style="color:var(--text3); font-size:10px; font-weight:600; letter-spacing:.07em;">CONNECTING</span>
+    </div>
+    <div class="dev-pill">
+      <div class="avatar" id="devAvatar">AM</div>
+      <span id="devName">Loading...</span>
+    </div>
+  </div>
+</header>
+
+<div class="refresh-bar"><div class="refresh-fill"></div></div>
+
+<!-- ── LAYOUT ── -->
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-top">
+      <div class="sidebar-row">
+        <span class="sec-label">Mentions</span>
+        <div class="poll-indicator">
+          <div class="ws-dot connecting" id="pollDot" style="width:5px;height:5px;"></div>
+          <span>live</span>
+        </div>
+      </div>
+
+      <div class="stats-row">
+        <div class="stat-box r"><div class="v" id="critCount">0</div><div class="l">Critical</div></div>
+        <div class="stat-box a"><div class="v" id="highCount">0</div><div class="l">High</div></div>
+        <div class="stat-box g"><div class="v" id="totalCount">0</div><div class="l">Total</div></div>
+      </div>
+
+      <div class="search-box">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+        </svg>
+        <input type="text" id="searchInput" placeholder="Search tickets..." oninput="renderList()">
+      </div>
+    </div>
+
+    <div class="mention-list" id="mentionList"></div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+
+    <div class="empty-state" id="emptyState">
+      <div class="empty-icon">⚡</div>
+      <h2>Select a mention</h2>
+      <p>DevAgent fans out across 4 platforms and delivers a full briefing</p>
+    </div>
+
+    <div class="loading-panel" id="loadingPanel">
+      <div class="loading-title">
+        <div class="spinner"></div>
+        <span id="loadingTitle">DevAgent investigating...</span>
+      </div>
+      <div id="platformRows"></div>
+    </div>
+
+    <div class="briefing-panel" id="briefingPanel"></div>
+
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">
+  <div class="toast-dot" id="toastDot"></div>
+  <span id="toastMsg"></span>
+</div>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- SCRIPT                                               -->
+<!-- ══════════════════════════════════════════════════════ -->
+<script>
+
+// ── CONFIG ───────────────────────────────────────────────
+const CONFIG = {
+  API_BASE:    'http://localhost:8001',
+  WS_URL:      'ws://localhost:8001/ws',
+  DEVELOPER:   '',
+  ACCOUNT_ID:  '',
+  POLL_SEC:    30,
+};
+
+// Promise that resolves once we know who the logged-in user is
+let _accountIdResolve;
+const accountIdReady = new Promise(r => _accountIdResolve = r);
+
+// ── STATE ─────────────────────────────────────────────────
+let ws           = null;
+let wsRetries    = 0;
+let activeId     = null;
+let cachedBriefings = {};   // ticket_id → briefing data (from backend or demo)
+let mentions     = [];
+
+// ── PLATFORMS (for loading animation) ────────────────────
+const PLATFORMS = [
+  { icon: '🎫', name: 'Jira',      status: 'Fetching ticket details...' },
+  { icon: '🪣', name: 'Bitbucket', status: 'Scanning PRs & branches...' },
+  { icon: '☁️', name: 'GCP Logs',  status: 'Querying error logs...' },
+  { icon: '📧', name: 'Outlook',   status: 'Searching email threads...' },
+  { icon: '💬', name: 'Teams',     status: 'Scanning channels for context...' }
+];
+
+// ── WEBSOCKET ──────────────────────────────────────────────
+function connectWS() {
+  setWSStatus('connecting');
+  try {
+    ws = new WebSocket(CONFIG.WS_URL);
+  } catch(e) {
+      console.error('[WS] Failed to connect', e);
+      setWSStatus('disconnected');
+      return;
+}
+
+  ws.onopen = () => {
+    wsRetries = 0;
+    setWSStatus('connected');
+    toast('green', '⚡ Live feed connected to backend');
+  };
+
+  ws.onmessage = (e) => {
+    try {
+      const msg = JSON.parse(e.data);
+      handleWsEvent(msg.event, msg.data);
+    } catch(err) {}
+  };
+
+  ws.onclose = () => {
+    setWSStatus('disconnected');
+    const delay = Math.min(1000 * Math.pow(2, wsRetries), 30000);
+    wsRetries++;
+    setTimeout(connectWS, delay);
+  };
+
+  ws.onerror = () => {
+    console.warn('[WS] Connection error');
+    setWSStatus('disconnected');
+};
+}
+
+
+// Format created date e.g. "2026-05-10T08:30:00.000+0000" → "10 May"
+function formatTicketDate(dateStr) {
+    if (!dateStr) return 'recently';
+    try {
+        const d = new Date(dateStr);
+        return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+    } catch {
+        return 'recently';
+    }
+}
+
+function handleWsEvent(event, payload) {
+  console.log('[WS Event]', event, payload);
+  switch(event) {
+    case 'new_mention':
+      accountIdReady.then(myId => {
+        console.log('[Filter] for_user:', payload.for_user, '| me:', myId);
+        if (payload.for_user && myId && payload.for_user !== myId) return;
+        if (mentions.length === 0) {
+          document.getElementById('mentionList').innerHTML = '';
+        }
+        const isInitialLoad = !payload.isNew;
+        addMention({
+          id:       payload.id,
+          title:    payload.title,
+          priority: payload.priority,
+          type:     payload.type     || 'task',
+          service:  payload.service  || '',
+          reporter: payload.reporter || '',
+          time: formatTicketDate(payload.time),
+          rawDate:  payload.time || '',
+          status:   'investigating',
+          isNew:    !isInitialLoad,
+        });
+        if (!isInitialLoad) {
+          toast('red', `🔴 New ${payload.priority.toUpperCase()} mention: ${payload.id}`);
+        }
+      });
+      break;
+
+    case 'briefing_ready':
+      // Backend sent a briefing — cache it
+      if (payload.ticket_id) {
+        updateMentionStatus(payload.ticket_id, 'ready');
+        // If this ticket is currently active, show it
+        if (activeId === payload.ticket_id) {
+          fetchAndShow(payload.ticket_id);
+        }
+        toast('green', `✓ Briefing ready: ${payload.ticket_id}`);
+      }
+      break;
+
+    case 'briefing_error':
+      updateMentionStatus(payload.ticket_id, 'error');
+      toast('amber', `⚠ Agent error on ${payload.ticket_id}`);
+      break;
+
+    case 'agent_started':
+      updateMentionStatus(payload.ticket_id, 'investigating');
+      break;
+  }
+}
+
+function setWSStatus(state) {
+  const dot    = document.getElementById('wsDot');
+  const label  = document.getElementById('wsLabel');
+  const pdot   = document.getElementById('pollDot');
+
+  const map = {
+    connected:    { cls:'connected',    txt:'LIVE',         color:'var(--green)' },
+    connecting:   { cls:'connecting',   txt:'CONNECTING',   color:'var(--amber)' },
+    disconnected: { cls:'disconnected', txt:'RECONNECTING', color:'var(--red)' }
+  };
+
+  const s = map[state] || map.connecting;
+  dot.className  = `ws-dot ${s.cls}`;
+  pdot.className = `ws-dot ${s.cls}`;
+  pdot.style.cssText = 'width:5px;height:5px';
+  label.textContent  = s.txt;
+  label.style.color  = s.color;
+}
+
+
+
+// ── MENTION MANAGEMENT ────────────────────────────────────
+function addMention(m) {
+  if (mentions.find(x => x.id === m.id)) return;
+  mentions.push(m);
+  // Sort by date descending — newest first
+  mentions.sort((a, b) => {
+    const dateA = new Date(a.rawDate || 0);
+    const dateB = new Date(b.rawDate || 0);
+    return dateB - dateA;
+  });
+  renderList();
+}
+
+function updateMentionStatus(id, status) {
+  const m = mentions.find(x => x.id === id);
+  if (m) { m.status = status; renderList(); }
+}
+
+function renderList() {
+  const q = (document.getElementById('searchInput').value || '').toLowerCase();
+  const list = document.getElementById('mentionList');
+  const filtered = mentions.filter(m =>
+    !q || m.title.toLowerCase().includes(q) || m.id.toLowerCase().includes(q)
+  );
+
+  list.innerHTML = filtered.map(m => `
+    <div class="m-card ${m.priority} ${m.id === activeId ? 'active' : ''} ${m.isNew ? 'fresh' : ''}"
+         onclick="selectMention('${m.id}')">
+      <div class="m-top">
+        <span class="m-id">${m.id}</span>
+        <div class="m-badges">
+          ${m.isNew ? '<span class="badge-new">NEW</span>' : ''}
+          <span class="badge-pri ${m.priority}">${m.priority}</span>
+        </div>
+      </div>
+      <div class="m-title">${m.title}</div>
+      <div class="m-foot">
+        <span class="m-status">
+          <span class="s-dot ${m.status === 'ready' ? 'ready' : m.status === 'investigating' ? 'busy' : ''}"></span>
+          ${m.status === 'ready' ? 'briefing ready' : m.status === 'investigating' ? 'investigating...' : 'pending'}
+        </span>
+        <span>${m.time}</span>
+      </div>
+    </div>
+  `).join('');
+
+  document.getElementById('critCount').textContent  = mentions.filter(m => m.priority === 'critical').length;
+  document.getElementById('highCount').textContent  = mentions.filter(m => m.priority === 'high').length;
+  document.getElementById('totalCount').textContent = mentions.length;
+}
+
+// ── SELECT & INVESTIGATE ─────────────────────────────────
+function selectMention(id) {
+  activeId = id;
+  const m = mentions.find(x => x.id === id);
+  if (m) m.isNew = false;
+  renderList();
+  fetchAndShow(id);
+}
+
+async function fetchAndShow(id) {
+  document.getElementById('emptyState').style.display = 'none';
+
+  // If already cached, show instantly
+  if (cachedBriefings[id]) {
+    document.getElementById('loadingPanel').className = 'loading-panel';
+    showBriefing(id, cachedBriefings[id]);
+    return;
+  }
+
+  // Show loading animation
+  await showLoading(id);
+
+  // Try backend first
+  try {
+    const resp = await fetch(`${CONFIG.API_BASE}/trigger`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ticket_id: id, developer: CONFIG.DEVELOPER }),
+    });
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const data = await resp.json();
+    cachedBriefings[id] = data;
+    updateMentionStatus(id, 'ready');
+    if (activeId === id) showBriefing(id, data);
+  } catch(err) {
+
+  }
+}
+
+// ── LOADING ANIMATION ─────────────────────────────────────
+async function showLoading(id) {
+  document.getElementById('briefingPanel').className = 'briefing-panel';
+  const lp = document.getElementById('loadingPanel');
+  lp.className = 'loading-panel show';
+  document.getElementById('loadingTitle').textContent = `DevAgent investigating ${id}...`;
+
+  const rows = document.getElementById('platformRows');
+  rows.innerHTML = '';
+
+  const results = ['ticket loaded', '— PRs', '— log entries', '— threads', '— messages'];
+
+  // Fan-out: rows appear one by one
+  for (let i = 0; i < PLATFORMS.length; i++) {
+    await sleep(155);
+    if (activeId !== id) return;
+    const p = PLATFORMS[i];
+    const div = document.createElement('div');
+    div.className = 'p-row';
+    div.id = `pr${i}`;
+    div.style.animationDelay = '0s';
+    div.innerHTML = `
+      <div class="p-icon">${p.icon}</div>
+      <span class="p-name">${p.name}</span>
+      <span class="p-status" id="ps${i}">${p.status}</span>
+      <div class="spinner" id="sp${i}"></div>`;
+    rows.appendChild(div);
+  }
+
+  // All complete in parallel
+  await sleep(750);
+  if (activeId !== id) return;
+  for (let i = 0; i < PLATFORMS.length; i++) {
+    await sleep(55);
+    const sp = document.getElementById(`sp${i}`);
+    const ps = document.getElementById(`ps${i}`);
+    if (sp) sp.outerHTML = '<span class="p-ok">✓</span>';
+    if (ps) { ps.style.color = 'var(--green)'; ps.textContent = results[i]; }
+  }
+
+  // Gemini synthesis row
+  await sleep(320);
+  if (activeId !== id) return;
+  const cd = document.createElement('div');
+  cd.className = 'p-row';
+  cd.style.marginTop = '6px';
+  cd.style.animationDelay = '0s';
+  cd.innerHTML = `
+    <div class="p-icon">🧠</div>
+    <span class="p-name" style="color:var(--purple)">Gemini</span>
+    <span class="p-status" id="GeminiStatus">Synthesising across all platforms...</span>
+    <div class="spinner" style="border-top-color:var(--purple)" id="GeminiSpinner"></div>`;
+  rows.appendChild(cd);
+
+  await sleep(1400);
+  if (activeId !== id) return;
+  const csp = document.getElementById('GeminiSpinner');
+  const css = document.getElementById('GeminiStatus');
+  if (csp) csp.outerHTML = '<span class="p-ok">✓</span>';
+  if (css) { css.style.color = 'var(--green)'; css.textContent = 'briefing ready'; }
+  await sleep(280);
+}
+
+// ── RENDER BRIEFING ───────────────────────────────────────
+function showBriefing(id, data) {
+  if (activeId !== id) return;
+
+  document.getElementById('loadingPanel').className = 'loading-panel';
+  const panel = document.getElementById('briefingPanel');
+  panel.className = 'briefing-panel show';
+
+  // Normalise fields — handles both backend response and demo format
+  const ticket    = data.trigger_ticket || {};
+  const ticketId  = ticket.id || id;
+  const title     = ticket.title || '';
+  const priority  = (ticket.priority?.value) || ticket.priority || 'medium';
+  const type      = (ticket.type?.value) || ticket.type || 'task';
+  const service   = ticket.service || '';
+  const reporter  = ticket.reporter || '';
+  const jiraUrl   = ticket.jira_url || `https://company.atlassian.net/browse/${ticketId}`;
+
+  const summary   = data.summary || '';
+  const rootCause = data.root_cause || '';
+  const conf      = (data.confidence?.value) || data.confidence || 'medium';
+  const confPct   = data.confidence_pct || 50;
+  const inMotion  = data.already_in_motion || '';
+  const severity  = data.severity_score || 5;
+  const actions   = data.action_items || [];
+
+  // Signal chips from signal_summary
+  const ss = data.signal_summary || {};
+  const sigChips = [
+    ss.bitbucket_prs      > 0 ? sigChip('Bitbucket', ss.bitbucket_prs,      'PRs found',     'purple') : '',
+    ss.gcp_errors         > 0 ? sigChip('GCP',       ss.gcp_errors,         'Errors',        'red')    : '',
+    ss.gcp_warnings       > 0 ? sigChip('GCP',       ss.gcp_warnings,       'Warnings',      'amber')  : '',
+    ss.email_threads      > 0 ? sigChip('Outlook',   ss.email_threads,      'Email threads', 'amber')  : '',
+    ss.teams_messages     > 0 ? sigChip('Teams',     ss.teams_messages,     'Messages',      'blue')   : '',
+  ].filter(Boolean).join('');
+
+  const sClass = `s${Math.min(10, Math.max(1, severity))}`;
+
+  panel.innerHTML = `
+    <div class="b-header">
+      <div class="b-header-top">
+        <div>
+          <div class="b-ticket-id">${ticketId}</div>
+          <div class="b-title">${title}</div>
+        </div>
+        <div class="sev-ring ${sClass}">
+          <div class="sn">${severity}</div>
+          <div class="sl">/10</div>
+        </div>
+      </div>
+      <div class="b-tags">
+        <span class="b-tag ${type}">${type.toUpperCase()}</span>
+        <span class="b-tag service">⚙ ${service}</span>
+        <span class="b-tag dim">👤 ${reporter}</span>
+        <span class="b-tag conf">🤖 ${conf.toUpperCase()} ${confPct}%</span>
+        <a href="${jiraUrl}" target="_blank" rel="noopener" class="b-tag jira-link">Open in Jira ↗</a>
+      </div>
+    </div>
+
+    ${sigChips ? `
+    <div class="section">
+      <div class="section-label">Signals collected</div>
+      <div class="signals-grid">${sigChips}</div>
+    </div>` : ''}
+
+    <div class="section">
+      <div class="section-label">Summary</div>
+      <div class="prose-card">${summary}</div>
+    </div>
+
+    <div class="section">
+      <div class="section-label">Root Cause</div>
+      <div class="prose-card">
+        ${rootCause}
+        <div class="conf-row">
+          <span class="conf-label">CONFIDENCE</span>
+          <div class="conf-bar">
+            <div class="conf-fill ${conf}" style="width:${confPct}%"></div>
+          </div>
+          <span class="conf-val ${conf}">${confPct}%</span>
+        </div>
+      </div>
+    </div>
+
+    ${inMotion ? `
+    <div class="section">
+      <div class="section-label">Already in Motion</div>
+      <div class="motion-card">
+        <span class="motion-icon">✓</span>
+        <span>${inMotion}</span>
+      </div>
+    </div>` : ''}
+
+    <div class="section">
+      <div class="section-label">Action Plan — ${actions.length} steps</div>
+      <div class="action-list">
+        ${actions.map((a, i) => renderAction(a, i)).join('')}
+      </div>
+    </div>
+
+    <div style="height: 20px;"></div>
+  `;
+}
+
+function sigChip(platform, count, label, color) {
+  return `<div class="sig-chip ${color}">
+    <div class="sp">${platform}</div>
+    <div class="sc">${count}</div>
+    <div class="sl">${label}</div>
+  </div>`;
+}
+
+function renderAction(a, i) {
+  const platform  = (a.platform?.value) || a.platform || 'jira';
+  const text      = a.text || '';
+  const linkLabel = a.link_label || 'Open';
+
+  // Fallback URLs per platform when Gemini doesn't provide a deep_link
+  const fallbacks = {
+    'jira':      `https://navadhan.atlassian.net/browse/`,
+    'bitbucket': `https://bitbucket.org/navadhan-acen`,
+    'gcp':       `https://console.cloud.google.com/logs/query?project=omega-sorter-353009`,
+    'outlook':   `https://outlook.office.com/mail/`,
+    'teams':     `https://teams.microsoft.com`,
+    'terminal':  ``,
+  };
+
+  const deepLink = a.deep_link || fallbacks[platform] || '';
+
+  const buttonLabels = {
+    'jira':      linkLabel || 'Open Ticket',
+    'bitbucket': linkLabel || 'Open Bitbucket',
+    'gcp':       linkLabel || 'View GCP Logs',
+    'outlook':   linkLabel || 'Open Outlook',
+    'teams':     linkLabel || 'Open Teams',
+    'terminal':  '',
+  };
+
+  const label = buttonLabels[platform] || linkLabel || 'Open';
+
+  return `
+    <div class="action-item">
+      <div class="a-num">${i + 1}</div>
+      <div class="a-body">
+        <span class="platform-tag ${platform}">${platform.toUpperCase()}</span>
+        <div class="a-text">${text}</div>
+      </div>
+      ${deepLink ? `
+      <a href="${deepLink}" target="_blank" rel="noopener" class="open-btn">
+        ${label}
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+          <polyline points="15 3 21 3 21 9"/>
+          <line x1="10" y1="14" x2="21" y2="3"/>
+        </svg>
+      </a>` : ''}
+    </div>`;
+}
+
+// ── TOAST ─────────────────────────────────────────────────
+function toast(color, msg) {
+  const el  = document.getElementById('toast');
+  const dot = document.getElementById('toastDot');
+  const txt = document.getElementById('toastMsg');
+  const map = { red:'var(--red)', green:'var(--green)', amber:'var(--amber)', purple:'var(--purple)' };
+  dot.style.background = map[color] || color;
+  txt.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.remove('show'), 4000);
+}
+
+// ── UTILS ──────────────────────────────────────────────────
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ── INIT ───────────────────────────────────────────────────
+// Start with empty list — populated from backend on load
+mentions = [];
+renderList();
+connectWS();
+initFromBackend();
+
+async function initFromBackend() {
+  try {
+    const meResp = await fetch(`${CONFIG.API_BASE}/me`);
+    if (meResp.ok) {
+      const me = await meResp.json();
+      CONFIG.DEVELOPER  = me.developer;
+      CONFIG.ACCOUNT_ID = me.account_id;
+      _accountIdResolve(me.account_id);
+
+      const nameParts = me.developer.trim().split(' ');
+      const initials = nameParts.length >= 2
+        ? nameParts[0][0] + nameParts[nameParts.length - 1][0]
+        : nameParts[0].substring(0, 2);
+
+      document.getElementById('devName').textContent   = me.developer;
+      document.getElementById('devAvatar').textContent = initials.toUpperCase();
+
+      document.getElementById('mentionList').innerHTML = `
+        <div style="padding:20px 14px;text-align:center;color:var(--text3)">
+          <div class="spinner" style="margin:0 auto 10px"></div>
+          <div style="font-size:11px">Loading your Jira mentions...</div>
+        </div>`;
+    }
+  } catch(err) {
+    console.warn('[Init] Backend not reachable:', err.message);
+  }
+}
+
+</script>
+</body>
+</html>

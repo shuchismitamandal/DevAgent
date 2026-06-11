@@ -1,0 +1,5 @@
+agent_env/
+.env
+user_credentials.json
+__pycache__/
+*.pyc

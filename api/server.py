@@ -400,7 +400,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 "priority": ticket["priority"],
                 "type":     ticket["type"],
                 "reporter": ticket["reporter"],
-                "time":     "recently",
+                "time": ticket.get("created", ""),
                 "status":   "ready",
                 "jira_url": ticket["jira_url"],
                 "isNew":    False,

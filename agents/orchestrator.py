@@ -574,9 +574,15 @@ def _parse_synthesis(raw_dict: dict) -> dict:
         "severity_score":    severity,
     }
 
+import json, tempfile
+creds_json = os.getenv("GOOGLE_APPLICATION_CREDENTIALS_JSON")
+if creds_json:
+    tmp = tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False)
+    tmp.write(creds_json)
+    tmp.close()
+    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = tmp.name
 
 async def _synthesize_with_gemini(prompt: str, ticket_id: str = "") -> dict:
-    import json
     import vertexai
     from vertexai.generative_models import GenerativeModel, GenerationConfig
 

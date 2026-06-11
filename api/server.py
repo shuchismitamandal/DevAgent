@@ -211,7 +211,7 @@ async def save_credentials(request: Request, creds: CredentialsRequest):
     })
     return {"status": "saved"}
 
-@app.get("/auth/callback")
+@app.get("/auth/cb")
 async def auth_callback(request: Request, code: str = "", state: str = "", error: str = ""):
     if error:
         return RedirectResponse(url=f"/login?error={error}")
